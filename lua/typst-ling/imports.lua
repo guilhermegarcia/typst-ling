@@ -26,9 +26,13 @@ local function normalize(path)
   return vim.fs.normalize(path)
 end
 
+local function readable(path)
+  return path and vim.fn.filereadable(path) == 1
+end
+
 local function resolve_relative(base_dir, import_path)
   local candidate = normalize(vim.fs.joinpath(base_dir, import_path))
-  if candidate and vim.fn.filereadable(candidate) == 1 then
+  if readable(candidate) then
     return candidate
   end
   return nil
@@ -58,14 +62,54 @@ local function resolve_with_root(package, import_path)
   return nil
 end
 
-local function resolve_import_path(bufnr, package, import_path)
-  if import_path:match("^@preview/") then
+local function typst_package_roots()
+  local roots = {}
+  local home = vim.loop.os_homedir()
+  local data_home = vim.env.XDG_DATA_HOME
+
+  if data_home and data_home ~= "" then
+    roots[#roots + 1] = vim.fs.joinpath(data_home, "typst", "packages")
+  end
+
+  roots[#roots + 1] = vim.fs.joinpath(home, ".local", "share", "typst", "packages")
+  roots[#roots + 1] = vim.fs.joinpath(home, "Library", "Application Support", "typst", "packages")
+
+  local unique = {}
+  local ordered = {}
+  for _, root in ipairs(roots) do
+    local norm = normalize(root)
+    if norm and not unique[norm] then
+      unique[norm] = true
+      ordered[#ordered + 1] = norm
+    end
+  end
+  return ordered
+end
+
+local function resolve_typst_package(import_path)
+  local namespace, name, version = import_path:match("^@([%w%-_]+)/([%w%-_]+):([%w%._%-]+)$")
+  if not namespace or not name or not version then
     return nil
   end
 
+  for _, root in ipairs(typst_package_roots()) do
+    local candidate = normalize(vim.fs.joinpath(root, namespace, name, version, "lib.typ"))
+    if readable(candidate) then
+      return candidate
+    end
+  end
+
+  return nil
+end
+
+local function resolve_import_path(bufnr, package, import_path)
   local from_root = resolve_with_root(package, import_path)
-  if from_root and vim.fn.filereadable(from_root) == 1 then
+  if readable(from_root) then
     return from_root
+  end
+
+  if import_path:match("^@") then
+    return resolve_typst_package(import_path)
   end
 
   return resolve_relative(buf_dir(bufnr), import_path)
