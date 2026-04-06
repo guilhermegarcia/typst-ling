@@ -338,6 +338,15 @@ local static_entries = {
   },
   {
     package = "phonokit",
+    name = "sound-shift",
+    category = "segments",
+    description = "Draw a schematic sound-shift diagram.",
+    template = "#sound-shift(\n  ${cursor}\n)",
+    path = "lib.typ",
+    search = "#let sound-shift = sound-shift",
+  },
+  {
+    package = "phonokit",
     name = "ex",
     category = "examples",
     description = "Create a numbered linguistic example.",
