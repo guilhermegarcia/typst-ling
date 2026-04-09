@@ -2,9 +2,7 @@ local config = require("typst-ling.config")
 
 local M = {}
 
-function M.setup(opts)
-  config.setup(opts)
-
+local function define_commands()
   if vim.fn.exists(":TypstLingFunctions") == 0 then
     vim.api.nvim_create_user_command("TypstLingFunctions", function()
       M.pick_functions()
@@ -22,6 +20,10 @@ function M.setup(opts)
   end
 end
 
+function M.setup(opts)
+  config.setup(opts)
+end
+
 function M.pick_functions()
   require("typst-ling.picker").open()
 end
@@ -29,5 +31,7 @@ end
 function M.tree_indent()
   require("typst-ling.tree").reindent_current()
 end
+
+define_commands()
 
 return M
