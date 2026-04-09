@@ -115,6 +115,61 @@ local function resolve_import_path(bufnr, package, import_path)
   return resolve_relative(buf_dir(bufnr), import_path)
 end
 
+local function resolve_local_import_path(bufnr, import_path)
+  if not import_path or import_path == "" or import_path:match("^@") then
+    return nil
+  end
+  return resolve_relative(buf_dir(bufnr), import_path)
+end
+
+local function path_has_component(path, component)
+  local normalized = normalize(path) or path
+  if not normalized then
+    return false
+  end
+  for part in normalized:gmatch("[^/\\]+") do
+    if part == component then
+      return true
+    end
+  end
+  return false
+end
+
+local function path_is_same_or_inside(path, root)
+  path = normalize(path)
+  root = normalize(root)
+  if not path or not root then
+    return false
+  end
+  return path == root or path:sub(1, #root + 1) == (root .. "/")
+end
+
+local function import_path_matches_package(bufnr, import_path, package)
+  if not import_path or import_path == "" then
+    return false
+  end
+
+  local _, name = import_path:match("^@([%w%-_]+)/([%w%-_]+):([%w%._%-]+)$")
+  if name then
+    return name == package
+  end
+
+  local basename = vim.fs.basename(import_path)
+  if basename == package
+    or basename == (package .. ".typ")
+    or path_has_component(import_path, package) then
+    return true
+  end
+
+  local resolved = resolve_local_import_path(bufnr, import_path)
+  if path_has_component(resolved, package) then
+    return true
+  end
+
+  local root = config.opts[package .. "_root"]
+  return root and path_is_same_or_inside(resolved, root)
+end
+
 function M.in_typst_buffer(bufnr)
   bufnr = current_buf(bufnr)
   return vim.bo[bufnr].filetype == "typst"
@@ -132,7 +187,7 @@ function M.describe(bufnr)
     if line:match("^%s*#import") then
       local import_path = line:match('^%s*#import%s+"([^"]+)"')
       for _, package in ipairs(packages) do
-        if line:find(package, 1, true) then
+        if import_path_matches_package(bufnr, import_path, package) then
           local item = found[package] or { package = package }
           item.import_path = item.import_path or import_path
           if import_path and not item.lib_path then

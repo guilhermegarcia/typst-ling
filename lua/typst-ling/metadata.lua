@@ -100,6 +100,7 @@ local static_entries = {
     template = "#subex-label(${cursor})",
     path = "lib.typ",
     search = "#let subex-label = subex-label",
+    picker = false,
   },
   {
     package = "synkit",
@@ -109,6 +110,7 @@ local static_entries = {
     template = "#eg-num-label(${cursor})",
     path = "lib.typ",
     search = "#let eg-num-label = eg-num-label",
+    picker = false,
   },
   {
     package = "synkit",
@@ -164,6 +166,15 @@ local static_entries = {
     template = '#formants("${cursor}")',
     path = "lib.typ",
     search = "#let formants = formants",
+  },
+  {
+    package = "phonokit",
+    name = "vot",
+    category = "phonetics",
+    description = "Draw a schematic voice onset time (VOT) timeline.",
+    template = '#vot(${cursor})',
+    path = "lib.typ",
+    search = "#let vot = vot",
   },
   {
     package = "phonokit",
@@ -362,6 +373,7 @@ local static_entries = {
     template = "#subex-label(${cursor})",
     path = "lib.typ",
     search = "#let subex-label = subex-label",
+    picker = false,
   },
   {
     package = "phonokit",
@@ -371,6 +383,7 @@ local static_entries = {
     template = "#ex-num-label(${cursor})",
     path = "lib.typ",
     search = "#let ex-num-label = ex-num-label",
+    picker = false,
   },
   {
     package = "phonokit",
@@ -447,7 +460,7 @@ function M.for_packages(active)
   local docs = docs_for(active)
   local items = {}
   for _, item in ipairs(static_entries) do
-    if allowed[item.package] then
+    if allowed[item.package] and item.picker ~= false then
       local doc = docs[item.package] and docs[item.package][item.name] or nil
       if doc then
         items[#items + 1] = merge_doc(item, doc)
